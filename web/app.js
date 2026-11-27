@@ -3,7 +3,7 @@
  * Needs config.js (ENDPOINT_URL) and signin-rules.js (CHOICES, FIELD_LIMITS,
  * validateSignIn, isValidHouseId) to load first.
  */
-/* global ENDPOINT_URL, CHOICES, FIELD_LIMITS, HONEYPOT_FIELD, validateSignIn, isValidHouseId */
+/* global ENDPOINT_URL, CHOICES, FIELD_LIMITS, HONEYPOT_FIELD, validateSignIn, isValidHouseId, privacyFooterText */
 (function () {
   'use strict';
 
@@ -118,6 +118,7 @@
     factsEl.hidden = facts.length === 0;
 
     if (branding && branding.office_name) $('brand-text').textContent = branding.office_name;
+    $('privacy-note').textContent = privacyFooterText(branding && branding.agent_name);
   }
 
   /** Shows web/assets/logo.svg in the header (falls back to text if missing). */

@@ -134,3 +134,36 @@ describe('isValidHouseId', () => {
     expect(isValidHouseId(42)).toBe(false);
   });
 });
+
+describe('privacyFooterText (guest form footer)', () => {
+  const { privacyFooterText } = require('../shared/signin-rules.js');
+
+  test('uses the first name from agent_name', () => {
+    expect(privacyFooterText('Jane Doe')).toBe('Your responses go directly to Jane.');
+    expect(privacyFooterText('  Mary-Kate  O’Neil ')).toBe('Your responses go directly to Mary-Kate.');
+  });
+
+  test('falls back to "the listing agent" when blank or missing', () => {
+    for (const v of ['', '   ', null, undefined]) {
+      expect(privacyFooterText(v)).toBe('Your responses go directly to the listing agent.');
+    }
+  });
+
+  test('strips anything that is not part of a name', () => {
+    expect(privacyFooterText('<b>Jane</b> Doe')).toBe('Your responses go directly to bJaneb.');
+    expect(privacyFooterText('12345')).toBe('Your responses go directly to the listing agent.');
+    expect(privacyFooterText('A'.repeat(80))).toBe('Your responses go directly to ' + 'A'.repeat(30) + '.');
+  });
+});
+
+describe('guest form footer markup', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'web', 'index.html'), 'utf8');
+  const app = fs.readFileSync(path.join(__dirname, '..', 'web', 'app.js'), 'utf8');
+
+  test('defaults to the fallback text and is filled from branding.agent_name', () => {
+    expect(html).toContain('id="privacy-note">Your responses go directly to the listing agent.</p>');
+    expect(app).toMatch(/\$\('privacy-note'\)\.textContent = privacyFooterText\(branding && branding\.agent_name\)/);
+  });
+});

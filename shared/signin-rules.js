@@ -146,6 +146,17 @@ function validateSignIn(body) {
   return { ok: true, value: value };
 }
 
+/**
+ * Footer line on the guest form: "Your responses go directly to <first name>."
+ * The first name comes from the agent_name setting (sent by the endpoint), so
+ * no name is ever stored in this public repo. Falls back to "the listing agent".
+ */
+function privacyFooterText(agentName) {
+  var first = String(agentName || '').trim().split(/\s+/)[0] || '';
+  first = first.replace(/[^A-Za-zÀ-ɏ'’-]/g, '').slice(0, 30);
+  return 'Your responses go directly to ' + (first || 'the listing agent') + '.';
+}
+
 if (typeof module !== 'undefined') {
   module.exports = {
     CHOICES: CHOICES,
@@ -156,6 +167,7 @@ if (typeof module !== 'undefined') {
     isValidHouseId: isValidHouseId,
     isHoneypotFilled: isHoneypotFilled,
     countDigits: countDigits,
-    validateSignIn: validateSignIn
+    validateSignIn: validateSignIn,
+    privacyFooterText: privacyFooterText
   };
 }
