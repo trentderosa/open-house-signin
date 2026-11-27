@@ -98,8 +98,8 @@ describe('guest form (static site)', () => {
 
   test('Pages workflow deploys in a separate job after the build job uploads the artifact', () => {
     const yml = read('.github/workflows/pages.yml');
-    expect(yml).toMatch(/\n  build:\n/);
-    expect(yml).toMatch(/\n  deploy:\n    needs: build\n/);
+    expect(yml).toMatch(/\n {2}build:\n/);
+    expect(yml).toMatch(/\n {2}deploy:\n {4}needs: build\n/);
     const build = yml.slice(yml.indexOf('\n  build:\n'), yml.indexOf('\n  deploy:\n'));
     const deploy = yml.slice(yml.indexOf('\n  deploy:\n'));
     expect(build).toContain('actions/upload-pages-artifact@');
