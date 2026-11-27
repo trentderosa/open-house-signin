@@ -45,9 +45,9 @@ const guest = {
   name: 'Jane Doe',
   phone: '555-555-0123',
   email: 'jane@example.com',
-  agent: 'Not yet',
+  agent: 'No',
   timeline: '3–6 months',
-  preapproved: 'Paying cash',
+  preapproved: 'Cash',
   heard_from: 'Zillow',
   comments: 'Nice yard',
   hp_contact_ref: ''
@@ -92,7 +92,7 @@ describe('doPost', () => {
 
     const rows = ss.getSheetByName('SignIns').rows;
     expect(rows).toHaveLength(2);
-    expect(rows[1].slice(1)).toEqual([HOUSE_ID, '12 Oak St', 'Jane Doe', '555-555-0123', 'jane@example.com', 'Not yet', '3–6 months', 'Paying cash', 'Zillow', 'Nice yard']);
+    expect(rows[1].slice(1)).toEqual([HOUSE_ID, '12 Oak St', 'Jane Doe', '555-555-0123', 'jane@example.com', 'No', '3–6 months', 'Cash', 'Zillow', 'Nice yard']);
 
     expect(m.sent).toHaveLength(2);
     const [owner, thanks] = m.sent;

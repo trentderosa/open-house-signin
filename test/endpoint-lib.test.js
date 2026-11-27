@@ -16,9 +16,9 @@ const signin = {
   phone: '555-555-0123',
   email: 'jane@example.com',
   agent: 'No',
-  timeline: 'Just looking',
-  preapproved: 'Not sure',
-  heard_from: 'Sign',
+  timeline: '12+ months',
+  preapproved: 'Cash',
+  heard_from: 'Signs',
   comments: 'Is the roof new?\nThanks!'
 };
 
@@ -102,7 +102,7 @@ describe('owner email', () => {
 
   test('includes every guest field and the house', () => {
     const mail = lib.buildOwnerEmail(signin, house, 'today');
-    for (const v of ['Jane Doe', '555-555-0123', 'jane@example.com', 'Just looking', 'Not sure', 'Sign', '12 Oak St']) {
+    for (const v of ['Jane Doe', '555-555-0123', 'jane@example.com', '12+ months', 'Cash', 'Signs', '12 Oak St']) {
       expect(mail.htmlBody).toContain(v);
       expect(mail.body).toContain(v);
     }

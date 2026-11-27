@@ -15,7 +15,7 @@ function good(overrides) {
     agent: 'No',
     timeline: CHOICES.timeline[0],
     preapproved: 'Yes',
-    heard_from: 'Sign',
+    heard_from: 'Signs',
     comments: 'Loved the kitchen.',
     ...overrides
   };

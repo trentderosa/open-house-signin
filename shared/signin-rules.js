@@ -12,21 +12,20 @@
  */
 
 var CHOICES = Object.freeze({
-  agent: Object.freeze(['Yes', 'No', 'Not yet']),
+  agent: Object.freeze(['Yes', 'No']),
   timeline: Object.freeze([
     '0\u20133 months',
     '3\u20136 months',
     '6\u201312 months',
-    '12+ months',
-    'Just looking'
+    '12+ months'
   ]),
-  preapproved: Object.freeze(['Yes', 'No', 'Paying cash', 'Not sure']),
+  preapproved: Object.freeze(['Yes', 'No', 'Cash']),
   heard_from: Object.freeze([
-    'Sign',
+    'Signs',
     'Zillow',
     'Realtor.com',
     'Social media',
-    'Friend or family',
+    'Friends or family',
     'Other'
   ])
 });
