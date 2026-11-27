@@ -27,15 +27,29 @@ describe('escapeFormula (spreadsheet formula injection)', () => {
 describe('settings', () => {
   test('settings keys are exactly the agreed list', () => {
     expect(core.SETTINGS_DEFAULTS.map((d) => d.key)).toEqual([
-      'website_url', 'guest_form_url', 'agent_name', 'agent_phone', 'office_name', 'logo_url', 'headshot_url', 'qr_logo_url', 'print_logo_url', 'notify_email'
+      'website_url', 'guest_form_url', 'agent_name', 'agent_title', 'agent_phone', 'agent_email', 'office_name',
+      'office_address_line1', 'office_address_line2', 'logo_url', 'qr_logo_url', 'print_logo_url', 'notify_email'
     ]);
   });
 
-  test('every default is blank (filled in the Sheet at setup) and has a plain-English note', () => {
+  test('every default is blank except agent_title ("Realtor"), and each has a plain-English note', () => {
     for (const d of core.SETTINGS_DEFAULTS) {
       expect(d.note.length).toBeGreaterThan(20);
-      expect(d.value).toBe('');
+      expect(d.value).toBe(d.key === 'agent_title' ? 'Realtor' : '');
     }
+    expect(core.parseSettings([]).agent_title).toBe('Realtor');
+    expect(core.parseSettings([['agent_title', '']]).agent_title).toBe('');
+  });
+
+  test('an unknown or retired key (e.g. an old row) does not break parseSettings', () => {
+    const s = core.parseSettings([
+      ['key', 'value', 'what this is'],
+      ['old_photo_url', 'https://www.example.com/old.jpg', 'retired'],
+      ['agent_name', 'Jane Doe', '']
+    ]);
+    expect(s.agent_name).toBe('Jane Doe');
+    expect(s.agent_email).toBe('');
+    expect(s.office_address_line1).toBe('');
   });
 
   test('parseSettings reads key/value rows, trims, and fills defaults', () => {
@@ -51,12 +65,12 @@ describe('settings', () => {
     expect(s.notify_email).toBe('');
   });
 
-  test('parseSettings keeps only http(s) links for website_url, logo_url and headshot_url', () => {
+  test('parseSettings keeps only http(s) links for the URL settings', () => {
     const s = core.parseSettings([
       ['website_url', 'javascript:alert(1)'],
       ['logo_url', 'www.example.com/logo.png']
     ]);
-    expect(core.URL_SETTING_KEYS).toEqual(['website_url', 'logo_url', 'headshot_url', 'qr_logo_url', 'print_logo_url']);
+    expect(core.URL_SETTING_KEYS).toEqual(['website_url', 'logo_url', 'qr_logo_url', 'print_logo_url']);
     expect(s.website_url).toBe('');
     expect(s.logo_url).toBe('https://www.example.com/logo.png');
   });
@@ -64,7 +78,6 @@ describe('settings', () => {
   test('blank image settings default to files on the guest form site', () => {
     const s = core.parseSettings([['guest_form_url', 'https://example.github.io/open-house-signin/']]);
     expect(s.logo_url).toBe('https://example.github.io/open-house-signin/assets/logo.png');
-    expect(s.headshot_url).toBe('https://example.github.io/open-house-signin/assets/headshot.jpg');
     expect(s.qr_logo_url).toBe('https://example.github.io/open-house-signin/assets/balloon.svg');
     expect(s.print_logo_url).toBe('https://example.github.io/open-house-signin/assets/logo.svg');
   });
@@ -75,7 +88,7 @@ describe('settings', () => {
       ['logo_url', 'https://cdn.example.com/brand.png']
     ]);
     expect(s.logo_url).toBe('https://cdn.example.com/brand.png');
-    expect(s.headshot_url).toBe('https://example.github.io/oh/assets/headshot.jpg');
+    expect(s.qr_logo_url).toBe('https://example.github.io/oh/assets/balloon.svg');
   });
 
   test('no guest_form_url (or a non-https one) means no image defaults', () => {
@@ -201,5 +214,29 @@ describe('ensureTabs', () => {
     const report = core.ensureTabs(ss).join(' ');
     expect(report).toMatch(/WARNING: the "Houses" tab is missing/);
     expect(report).toMatch(/Added settings: guest_form_url/);
+  });
+
+  test('appends new signature keys to an existing Settings tab without touching existing rows', () => {
+    const existing = [
+      ['key', 'value', 'what this is'],
+      ['website_url', 'https://www.example.com', 'note'],
+      ['agent_name', 'Jane Doe', 'note'],
+      ['agent_phone', '555-555-0123', 'note'],
+      ['office_name', 'Example Realty', 'note'],
+      ['old_photo_url', 'https://www.example.com/old.jpg', 'retired setting']
+    ];
+    const ss = new FakeSpreadsheet({ Settings: existing.map((r) => r.slice()) });
+    const report = core.ensureTabs(ss).join(' ');
+    const rows = ss.getSheetByName('Settings').rows;
+    expect(rows.slice(0, existing.length)).toEqual(existing);
+    const added = rows.slice(existing.length);
+    expect(added.map((r) => r[0])).toEqual(expect.arrayContaining(['agent_title', 'agent_email', 'office_address_line1', 'office_address_line2']));
+    expect(added.find((r) => r[0] === 'agent_title')[1]).toBe('Realtor');
+    expect(added.find((r) => r[0] === 'agent_email')[1]).toBe('');
+    expect(added.map((r) => r[0])).not.toContain('agent_name');
+    expect(report).toMatch(/Added settings: .*agent_title/);
+    const s = core.parseSettings(rows);
+    expect(s.agent_name).toBe('Jane Doe');
+    expect(s.agent_title).toBe('Realtor');
   });
 });

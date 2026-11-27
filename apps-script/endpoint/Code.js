@@ -12,7 +12,7 @@
  * before the response. To keep that short, email images are cached for 6
  * hours and uncached ones download in parallel (fetchAll).
  *
- * UrlFetchApp is used ONLY by loadInlineImages_ (email logo/headshot).
+ * UrlFetchApp is used ONLY by loadInlineImages_ (email logo).
  */
 /* global TAB_HOUSES, TAB_SIGNINS, SIGNIN_HEADERS, rowsToObjects, readSettings, isActiveValue,
    isValidHouseId, isHoneypotFilled, validateSignIn,
@@ -233,7 +233,7 @@ function sendGuestEmail_(signin, house, settings, cache, owner) {
 }
 
 /**
- * Gets the logo/headshot for embedding in the thank-you email (cid:).
+ * Gets the logo for embedding in the thank-you email (cid:).
  * Cached images come from CacheService; the rest download in parallel.
  * Any failure just leaves that image out; it never blocks the email.
  * Returns { blobs: { cid: Blob }, present: { key: true }, count }.

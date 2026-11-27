@@ -29,7 +29,7 @@ const DOCS_ONLY_EMAILS = ['noreply@anthropic.com']; // check-secrets: allow
 // deprecation notices that include maintainers' addresses; tokens, IDs and
 // keys are still scanned there.
 const RULE_EXEMPT_FILES = { email: ['package-lock.json'] };
-// Binary images (e.g. web/assets/logo.png, headshot.jpg) are skipped: their
+// Binary images (e.g. web/assets/logo.png) are skipped: their
 // bytes can look like phone numbers or tokens by accident. SVG is text and is
 // still scanned.
 const BINARY_IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico', '.avif'];

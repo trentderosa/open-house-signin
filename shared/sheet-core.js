@@ -38,7 +38,7 @@ var TEXT_COLUMNS = {
 };
 
 /** Settings that are links guests see or are sent to. parseSettings keeps only http(s). */
-var URL_SETTING_KEYS = ['website_url', 'logo_url', 'headshot_url', 'qr_logo_url', 'print_logo_url'];
+var URL_SETTING_KEYS = ['website_url', 'logo_url', 'qr_logo_url', 'print_logo_url'];
 
 /**
  * Image settings that, when blank, default to a file in web/assets/ on the
@@ -46,7 +46,6 @@ var URL_SETTING_KEYS = ['website_url', 'logo_url', 'headshot_url', 'qr_logo_url'
  */
 var ASSET_DEFAULTS = {
   logo_url: 'assets/logo.png',        // email signature (PNG: email apps don't show SVG)
-  headshot_url: 'assets/headshot.jpg',// email signature photo
   qr_logo_url: 'assets/balloon.svg',  // center of the printed QR code
   print_logo_url: 'assets/logo.svg'   // under the printed QR code
 };
@@ -69,9 +68,19 @@ var SETTINGS_DEFAULTS = [
     note: 'Your name, as guests should see it in the thank-you email.'
   },
   {
+    key: 'agent_title',
+    value: 'Realtor',
+    note: 'Your job title, shown under your name in the thank-you email signature (for example Realtor). Leave blank to hide it.'
+  },
+  {
     key: 'agent_phone',
     value: '',
     note: 'Your phone number for the thank-you email signature.'
+  },
+  {
+    key: 'agent_email',
+    value: '',
+    note: 'The email address shown in the thank-you email signature. Leave blank to hide it.'
   },
   {
     key: 'office_name',
@@ -79,14 +88,19 @@ var SETTINGS_DEFAULTS = [
     note: 'Your office name, shown in the thank-you email signature.'
   },
   {
+    key: 'office_address_line1',
+    value: '',
+    note: 'First line of your office address for the email signature (street). Leave blank to hide it.'
+  },
+  {
+    key: 'office_address_line2',
+    value: '',
+    note: 'Second line of your office address for the email signature (city, state, ZIP). Leave blank to hide it.'
+  },
+  {
     key: 'logo_url',
     value: '',
     note: 'Logo for the thank-you email (must be a PNG or JPG). Leave blank to use logo.png from the guest sign-in site.'
-  },
-  {
-    key: 'headshot_url',
-    value: '',
-    note: 'Web address of your headshot photo (a square JPG or PNG). Shown as a small circle in the thank-you email. Leave blank to use headshot.jpg from the guest sign-in site.'
   },
   {
     key: 'qr_logo_url',

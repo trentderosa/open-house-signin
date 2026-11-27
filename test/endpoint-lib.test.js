@@ -214,43 +214,169 @@ describe('cache keys stay under 250 characters', () => {
 });
 
 describe('guest email signature images', () => {
-  test('embeds headshot and logo by cid, table layout, alt text from agent_name', () => {
-    const mail = lib.buildGuestEmail(signin, house, settings, { logo: true, headshot: true });
-    expect(mail.htmlBody).toContain('<img src="cid:headshot" width="88" height="88" alt="Agent Example"');
-    expect(mail.htmlBody).toContain('border-radius:44px');
-    expect(mail.htmlBody).toContain('<img src="cid:logo"');
-    expect(mail.htmlBody).toContain('alt="Example Realty"');
+  test('embeds the logo by cid in a white cell, table layout, alt text from office_name', () => {
+    const mail = lib.buildGuestEmail(signin, house, settings, { logo: true });
+    expect(mail.htmlBody).toContain('<td bgcolor="#ffffff" style="background:#ffffff;');
+    expect(mail.htmlBody).toMatch(/<td bgcolor="#ffffff" style="background:#ffffff;[^"]*"><img src="cid:logo" width="160" alt="Example Realty"/);
     expect(mail.htmlBody).toContain('<table role="presentation" cellpadding="0" cellspacing="0" border="0"');
     expect(mail.htmlBody).not.toMatch(/display:\s*(flex|grid)/);
     expect(mail.htmlBody).not.toMatch(/src="https?:/); // nothing hotlinked
   });
 
   test('only the images that loaded are referenced', () => {
-    const onlyLogo = lib.buildGuestEmail(signin, house, settings, { logo: true });
-    expect(onlyLogo.htmlBody).toContain('cid:logo');
-    expect(onlyLogo.htmlBody).not.toContain('cid:headshot');
     const none = lib.buildGuestEmail(signin, house, settings, {});
     expect(none.htmlBody).not.toContain('cid:');
+    expect(none.htmlBody).not.toContain('<img');
   });
 
-  test('headshot alt text is escaped', () => {
-    const mail = lib.buildGuestEmail(signin, house, { ...settings, agent_name: '"><script>x</script>' }, { headshot: true });
+  test('logo alt text is escaped', () => {
+    const mail = lib.buildGuestEmail(signin, house, { ...settings, office_name: '"><script>x</script>' }, { logo: true });
     expect(mail.htmlBody).not.toContain('<script>');
   });
 });
 
 describe('planEmailImages', () => {
-  test('includes https logo and headshot only', () => {
-    expect(lib.planEmailImages({ logo_url: 'https://www.example.com/a.png', headshot_url: 'https://www.example.com/me.jpg' })).toEqual([
-      { key: 'logo', cid: 'logo', url: 'https://www.example.com/a.png' },
-      { key: 'headshot', cid: 'headshot', url: 'https://www.example.com/me.jpg' }
+  test('includes the https logo only', () => {
+    expect(lib.planEmailImages({ logo_url: 'https://www.example.com/a.png' })).toEqual([
+      { key: 'logo', cid: 'logo', url: 'https://www.example.com/a.png' }
     ]);
+    expect(Object.keys(lib.EMAIL_IMAGE_CIDS)).toEqual(['logo']);
   });
   test('skips blank, http, non-URL and SVG sources', () => {
     expect(lib.planEmailImages({})).toEqual([]);
     expect(lib.planEmailImages({ logo_url: 'http://www.example.com/a.png' })).toEqual([]);
     expect(lib.planEmailImages({ logo_url: 'javascript:alert(1)' })).toEqual([]);
-    expect(lib.planEmailImages({ logo_url: 'https://www.example.com/logo.svg', headshot_url: 'https://www.example.com/me.SVG?v=2' })).toEqual([]);
+    expect(lib.planEmailImages({ logo_url: 'https://www.example.com/logo.SVG?v=2' })).toEqual([]);
+  });
+});
+
+describe('guest email wording and signature', () => {
+  const full = {
+    agent_name: 'Jane Doe',
+    agent_title: 'Realtor',
+    office_name: 'Example Realty',
+    office_address_line1: '100 Example St',
+    office_address_line2: 'Anytown, VA 00000',
+    agent_phone: '(555) 555-0123',
+    agent_email: 'jane@example.com',
+    logo_url: 'https://www.example.com/logo.png',
+    website_url: ''
+  };
+  const textOf = (html) => html.replace(/<[^>]+>/g, '\n').split('\n').map((x) => x.trim()).filter(Boolean);
+
+  test('greeting, then the exact first-person opening, then the details intro (HTML)', () => {
+    const mail = lib.buildGuestEmail(signin, house, full);
+    expect(mail.htmlBody).toMatch(/>Hi Jane,<\/p><p[^>]*>Thank you for stopping by my open house!<\/p><p[^>]*>Here are the details so you have them handy\.<\/p><div style="border-left:/);
+    expect(mail.htmlBody).not.toContain('the open house at');
+  });
+
+  test('greeting, opening and details intro in the plain text', () => {
+    const mail = lib.buildGuestEmail(signin, house, full);
+    expect(mail.body.startsWith('Hi Jane,\n\nThank you for stopping by my open house!\n\nHere are the details so you have them handy.\n\nAddress: 12 Oak St\n')).toBe(true);
+  });
+
+  test('house details block is unchanged', () => {
+    const mail = lib.buildGuestEmail(signin, house, full);
+    for (const label of ['Address', 'Price', 'Beds', 'Baths', 'Square feet']) expect(mail.htmlBody).toContain('>' + label + '</td>');
+    expect(mail.htmlBody).toContain('Sunny colonial.');
+    expect(mail.htmlBody).toContain('View the full listing</a>');
+    expect(mail.body).toContain('3 bd · 2.5 ba · 1800 sq ft');
+  });
+
+  test('signature lines are in order (HTML and text)', () => {
+    const mail = lib.buildGuestEmail(signin, house, full, { logo: true });
+    const sigHtml = mail.htmlBody.slice(mail.htmlBody.indexOf('margin:24px 0 0'));
+    expect(textOf(sigHtml.slice(sigHtml.indexOf('>') + 1))).toEqual([
+      'Jane Doe', 'Realtor | Example Realty', '100 Example St', 'Anytown, VA 00000',
+      'P:', '(555) 555-0123', 'E:', 'jane@example.com'
+    ]);
+    expect(sigHtml.indexOf('jane@example.com')).toBeLessThan(sigHtml.indexOf('cid:logo'));
+    expect(mail.body).toContain('\n\nJane Doe\nRealtor | Example Realty\n100 Example St\nAnytown, VA 00000\nP: (555) 555-0123\nE: jane@example.com');
+  });
+
+  test('name is bold serif; P: and E: are bold orange; body font is Helvetica in charcoal', () => {
+    const html = lib.buildGuestEmail(signin, house, full).htmlBody;
+    expect(html).toContain('<strong style="font-family:Georgia,\'Times New Roman\',serif;font-size:17px;font-weight:bold;color:#232323;">Jane Doe</strong>');
+    expect(html).toContain('<strong style="color:#D9875F;font-weight:bold;">P:</strong>');
+    expect(html).toContain('<strong style="color:#D9875F;font-weight:bold;">E:</strong>');
+    expect(html).toMatch(/^<div style="font-family:Helvetica,Arial,sans-serif;font-size:15px;[^"]*color:#232323;/);
+  });
+
+  test('tel: link uses digits only; mailto: link for the email', () => {
+    const html = lib.buildGuestEmail(signin, house, { ...full, agent_phone: '+1 (555) 555-0123' }).htmlBody;
+    expect(html).toContain('<a href="tel:+15555550123" style="color:#232323;text-decoration:none;">+1 (555) 555-0123</a>');
+    expect(html).toContain('<a href="mailto:jane@example.com" style="color:#232323;text-decoration:none;">jane@example.com</a>');
+  });
+
+  test.each([
+    [{ agent_title: 'Realtor', office_name: 'Example Realty' }, 'Realtor | Example Realty'],
+    [{ agent_title: '', office_name: 'Example Realty' }, 'Example Realty'],
+    [{ agent_title: 'Realtor', office_name: '' }, 'Realtor'],
+    [{ agent_title: '  ', office_name: '' }, '']
+  ])('title/office line for %p is %p', (extra, line) => {
+    const mail = lib.buildGuestEmail(signin, house, { ...full, ...extra });
+    if (line) {
+      expect(mail.body.split('\n')).toContain(line);
+    } else {
+      expect(mail.body).not.toContain(' | ');
+      expect(mail.body).not.toMatch(/\nRealtor\n/);
+    }
+    expect(mail.htmlBody).not.toMatch(/>\s*\|\s|\s\|\s*</);
+  });
+
+  test('blank settings skip their lines', () => {
+    const mail = lib.buildGuestEmail(signin, house, { agent_name: 'Jane Doe' });
+    expect(mail.body.endsWith('just reply to this email.\n\nJane Doe')).toBe(true);
+    expect(mail.htmlBody).not.toContain('P:');
+    expect(mail.htmlBody).not.toContain('E:');
+    expect(mail.htmlBody).not.toContain('mailto:');
+    expect(mail.htmlBody).not.toContain('tel:');
+    const empty = lib.buildGuestEmail(signin, house, {});
+    expect(empty.htmlBody).not.toContain('margin:24px 0 0');
+    expect(empty.body.endsWith('just reply to this email.')).toBe(true);
+  });
+
+  test('an invalid agent_email is treated as blank', () => {
+    for (const bad of ['not-an-email', 'jane@example', 'jane doe@example.com', '"><a>@example.com']) {
+      const mail = lib.buildGuestEmail(signin, house, { ...full, agent_email: bad });
+      expect(mail.htmlBody).not.toContain('E:');
+      expect(mail.htmlBody).not.toContain('mailto:');
+      expect(mail.body).not.toContain('E: ');
+    }
+  });
+
+  test('every new signature setting is HTML-escaped and kept to one line', () => {
+    const mail = lib.buildGuestEmail(signin, house, {
+      agent_name: XSS,
+      agent_title: XSS,
+      office_name: '<b>Office</b>',
+      office_address_line1: XSS,
+      office_address_line2: '<img src=x onerror=alert(1)>\nline',
+      agent_phone: '<i>555</i>',
+      agent_email: 'jane@example.com'
+    }, { logo: true });
+    expect(mail.htmlBody).not.toMatch(/<script|<b>Office|<img src=x|<i>555/);
+    expect(mail.htmlBody).toContain('&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt; | &lt;b&gt;Office&lt;/b&gt;');
+    expect(mail.htmlBody).toContain('&lt;img src=x onerror=alert(1)&gt; line');
+    expect(mail.body).toContain('<img src=x onerror=alert(1)> line');
+  });
+
+  test('long values are capped', () => {
+    const mail = lib.buildGuestEmail(signin, house, { ...full, office_address_line1: 'A'.repeat(400) });
+    expect(mail.body).toContain('A'.repeat(149) + '…');
+    expect(mail.body).not.toContain('A'.repeat(150));
+  });
+
+  test('no agent photo anywhere in the output (logo is the only image)', () => {
+    const mail = lib.buildGuestEmail(signin, house, { ...full, ['head' + 'shot_url']: 'https://www.example.com/me.jpg' }, { logo: true, ['head' + 'shot']: true });
+    expect(JSON.stringify(mail).toLowerCase()).not.toContain('head' + 'shot');
+    expect(mail.htmlBody).not.toContain('me.jpg');
+    expect(mail.htmlBody.match(/<img /g)).toHaveLength(1);
+  });
+
+  test('settings parsed from the Sheet give the "Realtor" default title', () => {
+    const parsed = global.parseSettings([['agent_name', 'Jane Doe'], ['office_name', 'Example Realty']]);
+    expect(lib.buildGuestEmail(signin, house, parsed).body).toContain('\nJane Doe\nRealtor | Example Realty');
   });
 });
 

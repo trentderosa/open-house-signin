@@ -180,7 +180,7 @@ check the code.
 |---|---|---|
 | See, edit, create and delete all your Google Sheets spreadsheets | `spreadsheets` | A standalone script has no "this one Sheet only" option, so this is the narrowest scope that can open the Sheet by its ID. The code only ever opens the one Sheet saved in `SHEET_ID`. |
 | Send email as you | `script.send_mail` | Sends the sign-in email to the agent and the thank-you to the guest, from her Gmail. It uses MailApp, which can only *send*. It can't read her inbox (Gmail scopes can). |
-| Connect to an external service | `script.external_request` | Downloads the agent's logo and headshot from the GitHub Pages site to embed them in thank-you emails (`logo_url` / `headshot_url`). It's used for nothing else. |
+| Connect to an external service | `script.external_request` | Downloads the agent's logo from the GitHub Pages site to embed it in thank-you emails (`logo_url`). It's used for nothing else. |
 | See your primary Google Account email address | `userinfo.email` | Finds the agent's address so sign-in emails reach her when `notify_email` is blank, and so guests' replies go to her. |
 
 ---
@@ -317,22 +317,30 @@ row in plain English.
 | `website_url` | `https://www.example.com` | Where guests go after signing in. Blank shows a thank-you screen instead. |
 | `guest_form_url` | `https://<her-username>.github.io/<repo>/` | **Required for QR codes.** The admin page refuses to make QR codes until this is set. |
 | `agent_name` | `Jane Doe` | Shown in the thank-you email and as the email sender name. |
-| `agent_phone` | `555-555-0100` | Thank-you email signature. |
+| `agent_title` | `Realtor` | Job title next to the office name in the email signature (`Realtor \| Example Realty`). Starts as `Realtor`. Blank hides it. |
+| `agent_phone` | `555-555-0100` | Thank-you email signature (`P:` line, tap to call). |
+| `agent_email` | `jane@example.com` | Thank-you email signature (`E:` line). Must be a valid address or it's hidden. |
 | `office_name` | `Example Realty` | Office name for the email signature. |
+| `office_address_line1` | `100 Example St` | Office street address for the email signature. |
+| `office_address_line2` | `Anytown, VA 00000` | City, state and ZIP for the email signature. |
 | `logo_url` | blank | Email signature logo. Blank = `assets/logo.png` on the guest form site. See step 11. |
-| `headshot_url` | blank | Round photo in the email signature. Blank = `assets/headshot.jpg` on the guest form site. |
 | `qr_logo_url` | blank | Image in the center of printed QR codes. Blank = `assets/balloon.svg` on the guest form site. |
 | `print_logo_url` | blank | Logo printed under the QR code. Blank = `assets/logo.svg` on the guest form site. |
 | `notify_email` | blank | Blank means "send to the Google account's Gmail". Separate several addresses with commas. |
 
-Changes take effect immediately. No redeploy is needed.
+Any signature setting left blank is simply left out of the email.
+
+Changes take effect immediately. No redeploy is needed. Running `setup()`
+again adds any new settings rows (like these signature ones) to an existing
+Settings tab without touching the values already there. An old row the
+system no longer uses is ignored, and you can delete it.
 
 ---
 
-## 11. Logo and headshot images
+## 11. Logo images
 
 The brand images live in `web/assets/` and GitHub Pages serves them with the
-guest form. **Once `guest_form_url` is set, the four image settings fill
+guest form. **Once `guest_form_url` is set, the three image settings fill
 themselves in.** Leave them blank and the system uses these files on the
 guest form site, e.g. `https://<her-username>.github.io/<repo>/assets/logo.png`:
 
@@ -341,7 +349,6 @@ guest form site, e.g. `https://<her-username>.github.io/<repo>/assets/logo.png`:
 | `web/assets/logo.svg` | Guest form header; printed under the QR code (about 3.75 in wide) | `print_logo_url` |
 | `web/assets/balloon.svg` | Center of the printed QR code | `qr_logo_url` |
 | `web/assets/logo.png` | Thank-you email signature | `logo_url` |
-| `web/assets/headshot.jpg` | Round photo in the thank-you email signature (square image) | `headshot_url` |
 
 To change an image, replace the file with one of the **same name and type**,
 commit, and push to `main`. Or upload it somewhere else and put its
@@ -349,7 +356,7 @@ commit, and push to `main`. Or upload it somewhere else and put its
 
 **About email images.** Outlook and some other mail apps hide images linked
 from the web until the reader clicks "show images". So the endpoint downloads
-the logo and headshot and **embeds** them in the thank-you email. Rules:
+the logo and **embeds** it in the thank-you email. Rules:
 
 - PNG, JPG or GIF only, under **500 KB**. **SVG is skipped** because many email
   apps can't show it. That's why the email uses `logo.png`, not `logo.svg`.
@@ -358,7 +365,6 @@ the logo and headshot and **embeds** them in the thank-you email. Rules:
   fine but slightly slower.
 - If an image can't be downloaded or isn't allowed, the email goes out without
   it. A sign-in never fails because of an image.
-- Outlook on Windows shows the round headshot as a square. That's normal.
 
 **Printed QR code.** The balloon sits in a small white box in the middle of
 the QR code (about 20% of its width). QR codes use the highest error
@@ -434,7 +440,7 @@ Only the emails are skipped until the next day.
    - [ ] A new row in the **SignIns** tab.
    - [ ] The agent gets "Open House Sign-in: Jane Doe — 123 Test Lane".
    - [ ] The guest inbox gets the thank-you with the house details, the
-         signature (headshot and logo show without clicking "show images"),
+         signature (the logo shows without clicking "show images"),
          and a "Learn more about me" button if `website_url` is set.
 6. Try the error paths:
    - [ ] Submit with no phone, then with a phone of `555-0123`. You should see friendly inline errors.
@@ -462,7 +468,7 @@ credentials afterwards (step 16).
 
 ---
 
-## 15. Developer tools for the QR code (optional)
+## 15. Developer tools for the QR code and email (optional)
 
 `dev/print-preview.html` renders the printable QR page with the same code
 the admin page uses, a sample guest link, and the real artwork from
@@ -474,6 +480,10 @@ screenshots of it scan:
 ```sh
 node scripts/verify-qr.js --expect "https://example.github.io/open-house-signin/?h=0123456789abcdef" shot.png
 ```
+
+To preview the guest thank-you email, run `node dev/email-preview.js`. It
+builds the email with fake settings and writes `dev/email-preview.html`
+(not committed), which you can open in a browser.
 
 ## 16. Remove credentials from your Mac
 
@@ -516,5 +526,5 @@ When setup is done, nothing of the agent's should stay on your computer.
 | Guest form says "We couldn't load this open house" | Endpoint deployment access isn't **Anyone**, or the endpoint URL is wrong, or `SHEET_ID` isn't set (run `setup` in the endpoint). Check the endpoint's **Executions** page for errors. |
 | A QR code stopped working | That house's `active` box is unticked in the **Houses** tab. |
 | No emails | Check the endpoint **Executions** log. The daily quota may be used up. |
-| Logo or headshot missing from the email | The Executions log says why ("Skipping logo image ..."). Usually it's SVG, over 500 KB, or a wrong URL. |
+| Logo missing from the email | The Executions log says why ("Skipping logo image ..."). Usually it's SVG, over 500 KB, or a wrong URL. |
 | Pushed code but nothing changed | You need **Manage deployments -> New version** after `clasp push`. |

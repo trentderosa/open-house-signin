@@ -13,7 +13,7 @@ Sheet's **Settings** tab.
   returns public house info, and `doPost` validates and saves a sign-in, then
   sends the agent's alert email and the guest's thank-you (MailApp). The
   Sheet ID is in Script Properties (`SHEET_ID`). UrlFetchApp is used only to
-  download the logo/headshot for embedding in emails.
+  download the logo for embedding in emails.
 - `web/`: the guest form, served as-is by GitHub Pages (no build step).
   `web/config.js` stays a placeholder in git. `.github/workflows/pages.yml`
   writes it at deploy time from the `ENDPOINT_URL` repository variable, after
@@ -21,7 +21,8 @@ Sheet's **Settings** tab.
 - `shared/`: the single source for code used in more than one place.
   `npm run sync` copies it into `web/` and `apps-script/*` (browser code for
   the admin page is wrapped into `.html` includes). Never edit the copies.
-- `dev/`: print-preview harness for the QR page (not deployed).
+- `dev/`: print-preview harness for the QR page and `email-preview.js`,
+  which writes a local thank-you email preview (not deployed).
 - `scripts/`: `sync-shared.js`, `check-secrets.js`, `verify-qr.js`.
 - `test/`: Jest. Apps Script files are loaded into one global scope like the
   real runtime (`test/helpers/load.js`) with fakes in `test/helpers/fakes.js`.

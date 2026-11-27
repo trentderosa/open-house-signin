@@ -15,7 +15,8 @@ var BRAND = {
   blue: '#0C2749',
   red: '#AA1120',
   cream: '#f7f5ee',
-  charcoal: '#232323'
+  charcoal: '#232323',
+  orange: '#D9875F'
 };
 
 function escapeHtml(v) {
@@ -252,9 +253,9 @@ function buildOwnerEmail(signin, house, when) {
   return { subject: subject, htmlBody: htmlBody, body: body };
 }
 
-/* ---------- Inline email images (logo + headshot) ---------- */
+/* ---------- Inline email image (logo) ---------- */
 
-var EMAIL_IMAGE_CIDS = { logo: 'logo', headshot: 'headshot' };
+var EMAIL_IMAGE_CIDS = { logo: 'logo' };
 var EMAIL_IMAGE_MAX_BYTES = 500 * 1024;
 var EMAIL_IMAGE_CACHE_MAX_CHARS = 100000; // CacheService values must stay under 100 KB
 var EMAIL_IMAGE_CACHE_SECONDS = 21600;    // 6 hours (CacheService maximum)
@@ -262,12 +263,12 @@ var EMAIL_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif'];
 
 /**
  * Which images the thank-you email should try to embed: https only, from
- * logo_url and headshot_url. Returns [{ key, cid, url }].
+ * logo_url. Returns [{ key, cid, url }].
  */
 function planEmailImages(settings) {
   var s = settings || {};
   var plan = [];
-  [['logo', s.logo_url], ['headshot', s.headshot_url]].forEach(function (pair) {
+  [['logo', s.logo_url]].forEach(function (pair) {
     var url = normalizeUrl(pair[1]);
     if (url && /^https:\/\//i.test(url) && !/\.svgz?([?#]|$)/i.test(url)) {
       plan.push({ key: pair[0], cid: EMAIL_IMAGE_CIDS[pair[0]], url: url });
@@ -329,11 +330,85 @@ function shouldCacheImage(base64Length) {
   return base64Length > 0 && base64Length < EMAIL_IMAGE_CACHE_MAX_CHARS;
 }
 
+var EMAIL_FONT = 'font-family:Helvetica,Arial,sans-serif;';
+var EMAIL_SERIF = 'font-family:Georgia,\'Times New Roman\',serif;';
+
+/**
+ * The agent's email signature lines, in order, with blank settings skipped.
+ * Each value is one line and length-capped; agent_email is dropped unless it
+ * is a valid address. Returns { name, titleLine, address1, address2, phone,
+ * phoneDigits, email }, all plain text ('' when blank).
+ */
+function signatureParts(settings) {
+  var s = settings || {};
+  var title = oneLine(s.agent_title, 100);
+  var office = oneLine(s.office_name, 100);
+  var phone = oneLine(s.agent_phone, 50);
+  var email = oneLine(s.agent_email, 254);
+  return {
+    name: oneLine(s.agent_name, 100),
+    titleLine: [title, office].filter(Boolean).join(' | '),
+    address1: oneLine(s.office_address_line1, 150),
+    address2: oneLine(s.office_address_line2, 150),
+    phone: phone,
+    phoneDigits: phone.replace(/[^\d+]/g, ''),
+    email: isValidEmailAddress(email) ? email : ''
+  };
+}
+
+/** The signature as an HTML table (inline styles only). `withLogo` adds the cid:logo image. */
+function signatureHtml(sig, withLogo, logoAlt) {
+  var text = EMAIL_FONT + 'font-size:15px;line-height:1.5;color:' + BRAND.charcoal + ';';
+  var row = function (inner, extra) {
+    return '<tr><td style="' + text + (extra || '') + 'padding:0;">' + inner + '</td></tr>';
+  };
+  var label = function (l) {
+    return '<strong style="color:' + BRAND.orange + ';font-weight:bold;">' + l + '</strong> ';
+  };
+  var link = 'color:' + BRAND.charcoal + ';text-decoration:none;';
+  var rows = [];
+  if (sig.name) {
+    rows.push(row('<strong style="' + EMAIL_SERIF + 'font-size:17px;font-weight:bold;color:' + BRAND.charcoal + ';">' + escapeHtml(sig.name) + '</strong>'));
+  }
+  if (sig.titleLine) rows.push(row(escapeHtml(sig.titleLine)));
+  if (sig.address1) rows.push(row(escapeHtml(sig.address1)));
+  if (sig.address2) rows.push(row(escapeHtml(sig.address2)));
+  if (sig.phone) {
+    var phoneHtml = sig.phoneDigits
+      ? '<a href="tel:' + escapeHtml(sig.phoneDigits) + '" style="' + link + '">' + escapeHtml(sig.phone) + '</a>'
+      : escapeHtml(sig.phone);
+    rows.push(row(label('P:') + phoneHtml));
+  }
+  if (sig.email) {
+    rows.push(row(label('E:') + '<a href="mailto:' + escapeHtml(sig.email) + '" style="' + link + '">' + escapeHtml(sig.email) + '</a>'));
+  }
+  if (withLogo) {
+    rows.push('<tr><td bgcolor="#ffffff" style="background:#ffffff;background-color:#ffffff;padding:12px 0 0;">' +
+      '<img src="cid:' + EMAIL_IMAGE_CIDS.logo + '" width="160" alt="' + escapeHtml(logoAlt || 'Logo') + '"' +
+      ' style="display:block;width:160px;max-width:160px;height:auto;border:0;outline:none;text-decoration:none;"></td></tr>');
+  }
+  if (!rows.length) return '';
+  return '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0 0;border-collapse:collapse;">' +
+    rows.join('') + '</table>';
+}
+
+/** The same signature as plain-text lines. */
+function signatureText(sig) {
+  var lines = [];
+  if (sig.name) lines.push(sig.name);
+  if (sig.titleLine) lines.push(sig.titleLine);
+  if (sig.address1) lines.push(sig.address1);
+  if (sig.address2) lines.push(sig.address2);
+  if (sig.phone) lines.push('P: ' + sig.phone);
+  if (sig.email) lines.push('E: ' + sig.email);
+  return lines;
+}
+
 /**
  * The thank-you email to the guest. Returns { subject, htmlBody, body, name }.
  * `name` is the sender display name (agent_name, else office_name).
- * `images` says which inline images were fetched OK, e.g. { logo: true,
- * headshot: false }. Only those are referenced (as cid:), others are left out.
+ * `images` says which inline images were fetched OK, e.g. { logo: true }.
+ * Only those are referenced (as cid:), others are left out.
  */
 function buildGuestEmail(signin, house, settings, images) {
   var s = settings || {};
@@ -345,6 +420,7 @@ function buildGuestEmail(signin, house, settings, images) {
   var first = greetingName(signin.name);
   var facts = houseFactsLine(pub);
   var senderName = agentName || office || 'Open House';
+  var sig = signatureParts(s);
 
   var subject = oneLine('Thanks for visiting ' + (pub.address || 'the open house'), 250);
 
@@ -355,47 +431,26 @@ function buildGuestEmail(signin, house, settings, images) {
   if (pub.baths) detailRows.push(emailRow('Baths', escapeHtml(pub.baths)));
   if (pub.sqft) detailRows.push(emailRow('Square feet', escapeHtml(pub.sqft)));
 
-  var phoneDigits = agentPhone.replace(/[^\d+]/g, '');
   var inline = images || {};
-  var font = 'font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Arial,sans-serif;';
   // Table layout + inline styles only, so Gmail, Apple Mail and Outlook agree.
-  // Images are embedded (cid:) rather than hotlinked; see planEmailImages().
-  var headshotCell = inline.headshot
-    ? '<td valign="top" width="88" style="width:88px;padding:0 16px 0 0;vertical-align:top;">' +
-      '<img src="cid:' + EMAIL_IMAGE_CIDS.headshot + '" width="88" height="88" alt="' + escapeHtml(agentName || office || 'Agent photo') + '"' +
-      ' style="display:block;width:88px;height:88px;border:0;border-radius:44px;outline:none;text-decoration:none;"></td>'
-    : '';
-  var logoBlock = inline.logo
-    ? '<tr><td style="padding:12px 0 0;">' +
-      '<img src="cid:' + EMAIL_IMAGE_CIDS.logo + '" width="160" alt="' + escapeHtml(office || agentName || 'Logo') + '"' +
-      ' style="display:block;width:160px;max-width:160px;height:auto;border:0;outline:none;text-decoration:none;"></td></tr>'
-    : '';
-  var signature =
-    '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0 0;border-collapse:collapse;">' +
-    '<tr>' + headshotCell +
-    '<td valign="top" style="vertical-align:top;' + font + 'font-size:15px;line-height:1.5;color:' + BRAND.charcoal + ';">' +
-    '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">' +
-    '<tr><td style="' + font + 'font-size:15px;line-height:1.5;color:' + BRAND.charcoal + ';">' +
-    (agentName ? '<strong style="color:' + BRAND.blue + ';">' + escapeHtml(agentName) + '</strong><br>' : '') +
-    (office ? escapeHtml(office) + '<br>' : '') +
-    (agentPhone ? '<a href="tel:' + escapeHtml(phoneDigits) + '" style="color:' + BRAND.blue + ';">' + escapeHtml(agentPhone) + '</a>' : '') +
-    '</td></tr>' + logoBlock +
-    '</table></td></tr></table>';
+  // The logo is embedded (cid:) rather than hotlinked; see planEmailImages().
+  var signature = signatureHtml(sig, !!inline.logo, office || agentName || 'Logo');
 
   var callLine = agentPhone
     ? 'If you have questions or would like a private showing, just reply to this email or call ' + escapeHtml(agentPhone) + '.'
     : 'If you have questions or would like a private showing, just reply to this email.';
 
   var htmlBody =
-    '<div style="font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Arial,sans-serif;font-size:15px;line-height:1.5;color:' + BRAND.charcoal + ';max-width:560px;">' +
-    '<p style="margin:0 0 12px;">Hi ' + escapeHtml(first) + ',</p>' +
-    '<p style="margin:0 0 16px;">Thank you for stopping by the open house at <strong>' + escapeHtml(pub.address) + '</strong>. Here are the details so you have them handy.</p>' +
+    '<div style="' + EMAIL_FONT + 'font-size:15px;line-height:1.5;color:' + BRAND.charcoal + ';max-width:560px;">' +
+    '<p style="margin:0 0 12px;color:' + BRAND.charcoal + ';">Hi ' + escapeHtml(first) + ',</p>' +
+    '<p style="margin:0 0 12px;color:' + BRAND.charcoal + ';">Thank you for stopping by my open house!</p>' +
+    '<p style="margin:0 0 16px;color:' + BRAND.charcoal + ';">Here are the details so you have them handy.</p>' +
     '<div style="border-left:3px solid ' + BRAND.red + ';padding:4px 0 4px 14px;margin:0 0 16px;">' +
     '<table role="presentation" style="border-collapse:collapse;">' + detailRows.join('') + '</table>' +
     (pub.description ? '<p style="margin:10px 0 0;">' + escapeMultiline(pub.description) + '</p>' : '') +
     (pub.listing_url ? '<p style="margin:10px 0 0;"><a href="' + escapeHtml(pub.listing_url) + '" style="color:' + BRAND.blue + ';font-weight:600;">View the full listing</a></p>' : '') +
     '</div>' +
-    '<p style="margin:0;">' + callLine + '</p>' +
+    '<p style="margin:0;color:' + BRAND.charcoal + ';">' + callLine + '</p>' +
     signature +
     (websiteUrl ? '<p style="margin:16px 0 0;"><a href="' + escapeHtml(websiteUrl) + '" style="display:inline-block;padding:10px 18px;background:' + BRAND.blue + ';color:#ffffff;text-decoration:none;font-weight:600;border-radius:4px;">Learn more about me</a></p>' : '') +
     '</div>';
@@ -403,7 +458,9 @@ function buildGuestEmail(signin, house, settings, images) {
   var text = [
     'Hi ' + first + ',',
     '',
-    'Thank you for stopping by the open house at ' + pub.address + '. Here are the details so you have them handy.',
+    'Thank you for stopping by my open house!',
+    '',
+    'Here are the details so you have them handy.',
     ''
   ];
   if (pub.address) text.push('Address: ' + pub.address);
@@ -414,10 +471,9 @@ function buildGuestEmail(signin, house, settings, images) {
   text.push('', agentPhone
     ? 'If you have questions or would like a private showing, just reply to this email or call ' + agentPhone + '.'
     : 'If you have questions or would like a private showing, just reply to this email.');
-  text.push('');
-  if (agentName) text.push(agentName);
-  if (office) text.push(office);
-  if (agentPhone) text.push(agentPhone);
+  var sigLines = signatureText(sig);
+  if (sigLines.length) text.push('');
+  text.push.apply(text, sigLines);
   if (websiteUrl) text.push('', 'Learn more about me: ' + websiteUrl);
 
   return { subject: subject, htmlBody: htmlBody, body: text.join('\n'), name: senderName };
@@ -451,6 +507,7 @@ if (typeof module !== 'undefined') {
     buildSignInRow: buildSignInRow,
     buildOwnerEmail: buildOwnerEmail,
     buildGuestEmail: buildGuestEmail,
+    signatureParts: signatureParts,
     EMAIL_IMAGE_CIDS: EMAIL_IMAGE_CIDS,
     EMAIL_IMAGE_MAX_BYTES: EMAIL_IMAGE_MAX_BYTES,
     EMAIL_IMAGE_CACHE_SECONDS: EMAIL_IMAGE_CACHE_SECONDS,

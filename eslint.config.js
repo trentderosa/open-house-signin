@@ -64,5 +64,14 @@ module.exports = [
       sourceType: 'commonjs',
       globals: { ...globals.node, ...globals.jest }
     }
+  },
+  {
+    // Node-only dev script (writes a local email preview).
+    files: ['dev/email-preview.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'commonjs',
+      globals: globals.node
+    }
   }
 ];

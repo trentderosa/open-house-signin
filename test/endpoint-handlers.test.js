@@ -189,23 +189,20 @@ describe('doPost', () => {
 
   describe('inline email images', () => {
     const PNG = [-119, 80, 78, 71, 13, 10, 26, 10, 0, 0];
-    const JPG = [-1, -40, -1, -32, 0, 16];
     const LOGO = 'https://example.github.io/oh/assets/logo.png';
-    const HEAD = 'https://example.github.io/oh/assets/headshot.jpg';
 
-    test('fetches, embeds by cid, and caches small images', () => {
-      const m = installGasMocks(makeSs({ logo_url: LOGO, headshot_url: HEAD }), {
+    test('fetches, embeds by cid, and caches the logo', () => {
+      const m = installGasMocks(makeSs({ logo_url: LOGO }), {
         responses: {
-          [LOGO]: { code: 200, headers: { 'Content-Type': 'image/png' }, bytes: PNG },
-          [HEAD]: { code: 200, headers: { 'content-type': 'image/jpeg' }, bytes: JPG }
+          [LOGO]: { code: 200, headers: { 'Content-Type': 'image/png' }, bytes: PNG }
         }
       });
       expect(post(guest).ok).toBe(true);
       const thanks = m.sent.find((x) => x.to === 'jane@example.com');
-      expect(Object.keys(thanks.inlineImages).sort()).toEqual(['headshot', 'logo']);
+      expect(Object.keys(thanks.inlineImages)).toEqual(['logo']);
+      expect(m.fetches.length).toBe(1);
       expect(thanks.inlineImages.logo.mime).toBe('image/png');
       expect(thanks.htmlBody).toContain('cid:logo');
-      expect(thanks.htmlBody).toContain('cid:headshot');
       expect(m.cache.get('img:' + LOGO)).toMatch(/^image\/png\|/);
 
       // Second guest: served from cache, no new fetches.
@@ -217,11 +214,10 @@ describe('doPost', () => {
     });
 
     test('a bad image is left out but the email still goes and the sign-in is saved', () => {
-      const ss = makeSs({ logo_url: LOGO, headshot_url: HEAD });
+      const ss = makeSs({ logo_url: LOGO });
       const m = installGasMocks(ss, {
         responses: {
-          [LOGO]: { code: 200, headers: { 'Content-Type': 'image/svg+xml' }, bytes: [60, 115, 118, 103] },
-          [HEAD]: { code: 404, headers: {}, bytes: [] }
+          [LOGO]: { code: 200, headers: { 'Content-Type': 'image/svg+xml' }, bytes: [60, 115, 118, 103] }
         }
       });
       expect(post(guest).ok).toBe(true);

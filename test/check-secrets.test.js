@@ -128,8 +128,8 @@ describe('files', () => {
     const fakeText = Buffer.from(j('703', '-', '555', '-', '1234 someone', '@', 'gmail.com'));
     const files = {
       'web/assets/logo.png': fakeText,
-      'web/assets/headshot.jpg': fakeText,
-      'web/assets/HEADSHOT.JPEG': fakeText,
+      'web/assets/photo.jpg': fakeText,
+      'web/assets/PHOTO.JPEG': fakeText,
       'web/assets/logo.svg': fakeText
     };
     const found = scanFiles(Object.keys(files), (f) => files[f]);
