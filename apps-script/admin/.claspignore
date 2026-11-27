@@ -1,0 +1,5 @@
+# Only push Apps Script code, HTML and the manifest.
+**/**
+!appsscript.json
+!*.js
+!*.html

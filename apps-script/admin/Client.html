@@ -1,0 +1,196 @@
+<script>
+  (function () {
+    'use strict';
+
+    // QR drawing lives in QrRender.html (generated from shared/qr-render.js):
+    // makeQr, buildQrSvg, renderPrintSheet.
+    var state = { settings: null, houses: [], current: null };
+
+    function $(id) { return document.getElementById(id); }
+
+    function qrSvg(url) {
+      if (typeof qrcode !== 'function') throw new Error('The QR code library did not load. Check your internet connection and reload.');
+      return buildQrSvg(makeQr(qrcode, url), { logoUrl: state.settings && state.settings.qrLogoUrl });
+    }
+
+    function applySettings(settings) {
+      state.settings = settings;
+      var alert = $('settings-alert');
+      if (!settings.guestFormReady) {
+        alert.textContent = '';
+        var strong = document.createElement('strong');
+        strong.textContent = 'QR codes are turned off until setup is finished. ';
+        alert.appendChild(strong);
+        alert.appendChild(document.createTextNode(settings.guestFormError));
+        alert.hidden = false;
+      } else {
+        alert.hidden = true;
+      }
+    }
+
+    function factsLine(h) {
+      var bits = [];
+      if (h.price) bits.push(h.price);
+      if (h.beds) bits.push(h.beds + ' bd');
+      if (h.baths) bits.push(h.baths + ' ba');
+      if (h.sqft) bits.push(h.sqft + ' sq ft');
+      return bits.join(' · ');
+    }
+
+    function renderList() {
+      var list = $('past-list');
+      list.textContent = '';
+      $('past-loading').hidden = true;
+      $('past-empty').hidden = state.houses.length > 0;
+      state.houses.forEach(function (h) {
+        var li = document.createElement('li');
+        var meta = document.createElement('div');
+        meta.className = 'past-meta';
+        var addr = document.createElement('div');
+        addr.className = 'past-address';
+        addr.textContent = h.address;
+        if (!h.active) {
+          var badge = document.createElement('span');
+          badge.className = 'badge';
+          badge.textContent = 'Off';
+          badge.title = 'Turned off in the Sheet: guests can’t sign in';
+          addr.appendChild(badge);
+        }
+        var sub = document.createElement('div');
+        sub.className = 'past-sub';
+        var date = h.createdAt ? new Date(h.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+        sub.textContent = [date, factsLine(h)].filter(Boolean).join(' · ');
+        meta.appendChild(addr);
+        meta.appendChild(sub);
+
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn btn-quiet';
+        btn.textContent = 'Print QR';
+        btn.setAttribute('aria-label', 'Print QR code for ' + h.address);
+        btn.disabled = !h.guestUrl;
+        btn.addEventListener('click', function () { openPrint(h); });
+
+        li.appendChild(meta);
+        li.appendChild(btn);
+        list.appendChild(li);
+      });
+    }
+
+    function showResult(house) {
+      state.current = house;
+      $('result').hidden = false;
+      $('result-address').textContent = house.address;
+      var link = $('result-link');
+      link.textContent = house.guestUrl || '';
+      link.href = house.guestUrl || '#';
+      $('copy-status').textContent = '';
+      try {
+        $('result-qr').innerHTML = house.guestUrl ? qrSvg(house.guestUrl) : '';
+      } catch (err) {
+        $('result-qr').textContent = err.message;
+      }
+      $('result-print').disabled = !house.guestUrl;
+      $('result-copy').disabled = !house.guestUrl;
+      $('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      $('result-heading').setAttribute('tabindex', '-1');
+      $('result-heading').focus({ preventScroll: true });
+    }
+
+    function openPrint(house) {
+      if (!house.guestUrl) return;
+      var s = state.settings || {};
+      document.body.classList.add('printing');
+      $('print-toolbar').hidden = false;
+      window.scrollTo(0, 0);
+      $('print-now').disabled = true;
+      renderPrintSheet($('print-sheet'), { url: house.guestUrl, centerLogoUrl: s.qrLogoUrl, brandLogoUrl: s.printLogoUrl })
+        .then(function () {
+          $('print-now').disabled = false;
+          $('print-now').focus();
+          // Both images have loaded (or been left out), so they will print.
+          setTimeout(function () { window.print(); }, 150);
+        })
+        .catch(function (err) {
+          closePrint();
+          window.alert(err.message);
+        });
+    }
+
+    function closePrint() {
+      document.body.classList.remove('printing');
+      $('print-toolbar').hidden = true;
+    }
+
+    function load() {
+      google.script.run
+        .withSuccessHandler(function (data) {
+          applySettings(data.settings);
+          state.houses = data.houses;
+          renderList();
+        })
+        .withFailureHandler(function (err) {
+          $('past-loading').hidden = true;
+          $('load-error').textContent = 'Couldn’t load your open houses: ' + (err && err.message ? err.message : err);
+          $('load-error').hidden = false;
+        })
+        .getAdminData();
+    }
+
+    $('house-form').addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var form = ev.target;
+      var errorEl = $('form-error');
+      errorEl.textContent = '';
+      var input = {};
+      ['address', 'price', 'beds', 'baths', 'sqft', 'description', 'listing_url'].forEach(function (k) {
+        input[k] = form.elements[k].value;
+      });
+      if (!input.address.trim()) {
+        errorEl.textContent = 'Please enter the address.';
+        form.elements.address.setAttribute('aria-invalid', 'true');
+        form.elements.address.focus();
+        return;
+      }
+      form.elements.address.removeAttribute('aria-invalid');
+      var btn = $('save-btn');
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+      google.script.run
+        .withSuccessHandler(function (res) {
+          btn.disabled = false;
+          btn.textContent = 'Save and make QR code';
+          form.reset();
+          applySettings(res.settings);
+          state.houses.unshift(res.house);
+          renderList();
+          showResult(res.house);
+        })
+        .withFailureHandler(function (err) {
+          btn.disabled = false;
+          btn.textContent = 'Save and make QR code';
+          errorEl.textContent = (err && err.message ? err.message : String(err)).replace(/^Error:\s*/, '');
+        })
+        .addHouse(input);
+    });
+
+    $('result-print').addEventListener('click', function () { if (state.current) openPrint(state.current); });
+    $('result-copy').addEventListener('click', function () {
+      var url = state.current && state.current.guestUrl;
+      if (!url) return;
+      var done = function (ok) { $('copy-status').textContent = ok ? 'Link copied.' : 'Couldn’t copy. Press and hold the link to copy it.'; };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(function () { done(true); }, function () { done(false); });
+      } else {
+        done(false);
+      }
+    });
+    $('print-now').addEventListener('click', function () { window.print(); });
+    $('print-back').addEventListener('click', closePrint);
+    document.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Escape' && document.body.classList.contains('printing')) closePrint();
+    });
+
+    load();
+  })();
+</script>

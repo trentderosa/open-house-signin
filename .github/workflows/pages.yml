@@ -1,0 +1,69 @@
+name: Deploy guest form to GitHub Pages
+
+# Publishes the web/ folder as-is (no build step) after CI passes on main.
+#
+# web/config.js is a placeholder in git. At deploy time it is written from the
+# repository variable ENDPOINT_URL (Settings -> Secrets and variables ->
+# Actions -> Variables), so the endpoint URL is never committed.
+#
+# Skipped while the repo is private (free GitHub Pages needs a public repo).
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # Run only for: a manual run from main, or a successful CI run triggered
+    # by a push to main in this repository (not a fork's branch named main).
+    if: >-
+      ${{ !github.event.repository.private && (
+        (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+        (github.event_name == 'workflow_run' &&
+         github.event.workflow_run.conclusion == 'success' &&
+         github.event.workflow_run.head_branch == 'main' &&
+         github.event.workflow_run.event == 'push' &&
+         github.event.workflow_run.head_repository.full_name == github.repository)
+      ) }}
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Deploy exactly the commit CI tested.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Write web/config.js from the ENDPOINT_URL repository variable
+        env:
+          ENDPOINT_URL: ${{ vars.ENDPOINT_URL }}
+        run: |
+          if [ -z "$ENDPOINT_URL" ]; then
+            echo "::error::The ENDPOINT_URL repository variable is empty. Set it under Settings -> Secrets and variables -> Actions -> Variables, then re-run this workflow."
+            exit 1
+          fi
+          if ! printf '%s' "$ENDPOINT_URL" | grep -Eq '^https://script\.google\.com/macros/s/[A-Za-z0-9_-]+/exec$'; then
+            echo "::error::ENDPOINT_URL must look like https://script.google.com/macros/s/<deployment-id>/exec"
+            exit 1
+          fi
+          printf "var ENDPOINT_URL = '%s';\n" "$ENDPOINT_URL" > web/config.js
+          echo "web/config.js written."
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <!--
+    Security policy. GitHub Pages can't send custom HTTP headers, so these are
+    <meta> tags. Notes:
+    - Scripts, styles and images load only from this site.
+    - The only outside connection allowed is the Google Apps Script endpoint
+      (script.google.com redirects to script.googleusercontent.com).
+    - frame-ancestors (anti-framing) CANNOT be set from a meta tag; browsers
+      ignore it there. app.js refuses to run inside a frame instead.
+    - X-Content-Type-Options and Permissions-Policy also can't be set by meta.
+  -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src https://script.google.com https://script.googleusercontent.com; font-src 'self'; base-uri 'none'; form-action 'none'; manifest-src 'self'; upgrade-insecure-requests">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="theme-color" content="#0C2749">
+  <title>Open House Sign-In</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="config.js" defer></script>
+  <script src="signin-rules.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="masthead">
+    <div class="masthead-inner">
+      <div class="brandline">
+        <img class="brand-logo" id="brand-logo" alt="" hidden>
+        <span class="brand-text" id="brand-text">Open House</span>
+      </div>
+      <p class="eyebrow">Welcome &mdash; please sign in</p>
+      <h1 class="address" id="house-address">Open House</h1>
+      <p class="facts" id="house-facts" hidden></p>
+    </div>
+  </header>
+
+  <main id="main" class="page">
+    <section id="view-loading" class="view" aria-live="polite">
+      <p class="loading"><span class="spinner" aria-hidden="true"></span>Loading the open house&hellip;</p>
+    </section>
+
+    <section id="view-message" class="view message" hidden>
+      <h2 id="message-title" tabindex="-1"></h2>
+      <p id="message-body"></p>
+      <button type="button" class="btn btn-secondary" id="message-retry" hidden>Try again</button>
+    </section>
+
+    <section id="view-form" class="view" hidden>
+      <form id="signin-form" method="post" novalidate>
+        <div id="form-status" class="form-status" role="alert" aria-live="assertive"></div>
+
+        <fieldset class="group">
+          <legend class="group-title"><span class="num">01</span> Your details</legend>
+          <div class="field">
+            <label for="name">Name <span class="req" aria-hidden="true">*</span><span class="sr-only">(required)</span></label>
+            <input id="name" name="name" type="text" required autocomplete="name" autocapitalize="words" spellcheck="false" aria-describedby="name-error">
+            <p class="field-error" id="name-error"></p>
+          </div>
+          <div class="field">
+            <label for="phone">Phone <span class="req" aria-hidden="true">*</span><span class="sr-only">(required)</span></label>
+            <input id="phone" name="phone" type="tel" required autocomplete="tel" inputmode="tel" aria-describedby="phone-error">
+            <p class="field-error" id="phone-error"></p>
+          </div>
+          <div class="field">
+            <label for="email">Email <span class="req" aria-hidden="true">*</span><span class="sr-only">(required)</span></label>
+            <input id="email" name="email" type="email" required autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false" aria-describedby="email-error">
+            <p class="field-error" id="email-error"></p>
+          </div>
+        </fieldset>
+
+        <div class="group">
+          <p class="group-title"><span class="num">02</span> A few quick questions <span class="optional">optional</span></p>
+
+          <fieldset class="choice" data-choice="agent" aria-describedby="agent-error">
+            <legend>Are you working with an agent?</legend>
+            <div class="options" data-options="agent"></div>
+            <p class="field-error" id="agent-error"></p>
+          </fieldset>
+
+          <fieldset class="choice" data-choice="timeline" aria-describedby="timeline-error">
+            <legend>When are you hoping to buy?</legend>
+            <div class="options" data-options="timeline"></div>
+            <p class="field-error" id="timeline-error"></p>
+          </fieldset>
+
+          <fieldset class="choice" data-choice="preapproved" aria-describedby="preapproved-error">
+            <legend>Are you pre-approved for a mortgage?</legend>
+            <div class="options" data-options="preapproved"></div>
+            <p class="field-error" id="preapproved-error"></p>
+          </fieldset>
+
+          <fieldset class="choice" data-choice="heard_from" aria-describedby="heard_from-error">
+            <legend>How did you hear about this open house?</legend>
+            <div class="options" data-options="heard_from"></div>
+            <p class="field-error" id="heard_from-error"></p>
+          </fieldset>
+
+          <div class="field">
+            <label for="comments">Comments or questions</label>
+            <textarea id="comments" name="comments" rows="3" aria-describedby="comments-error"></textarea>
+            <p class="field-error" id="comments-error"></p>
+          </div>
+        </div>
+
+        <!-- Anti-spam: real people never see or fill this in. -->
+        <div class="hp" aria-hidden="true">
+          <label for="hp_contact_ref">Leave this field empty</label>
+          <input id="hp_contact_ref" name="hp_contact_ref" type="text" tabindex="-1" autocomplete="off">
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="submit-btn">
+          <span class="btn-label">Sign in</span>
+        </button>
+        <p class="privacy">Your details go only to the listing agent.</p>
+      </form>
+    </section>
+
+    <section id="view-thanks" class="view thanks" hidden>
+      <p class="thanks-mark" aria-hidden="true"></p>
+      <h2 id="thanks-title" tabindex="-1">Thanks for signing in.</h2>
+      <p id="thanks-body">Enjoy the tour.</p>
+      <button type="button" class="btn btn-secondary" id="thanks-again">Sign in another guest</button>
+    </section>
+  </main>
+
+  <noscript>
+    <p class="noscript">This sign-in form needs JavaScript. Please turn it on, or ask the agent for a paper sign-in sheet.</p>
+  </noscript>
+</body>
+</html>
