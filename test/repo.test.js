@@ -96,6 +96,18 @@ describe('guest form (static site)', () => {
     for (const b of runBlocks) expect(b).not.toContain('${{');
   });
 
+  test('Pages workflow deploys in a separate job after the build job uploads the artifact', () => {
+    const yml = read('.github/workflows/pages.yml');
+    expect(yml).toMatch(/\n  build:\n/);
+    expect(yml).toMatch(/\n  deploy:\n    needs: build\n/);
+    const build = yml.slice(yml.indexOf('\n  build:\n'), yml.indexOf('\n  deploy:\n'));
+    const deploy = yml.slice(yml.indexOf('\n  deploy:\n'));
+    expect(build).toContain('actions/upload-pages-artifact@');
+    expect(build).not.toContain('actions/deploy-pages@');
+    expect(deploy).toContain('actions/deploy-pages@');
+    expect(deploy).toContain('name: github-pages');
+  });
+
   test('no _headers file (GitHub Pages ignores it)', () => {
     expect(fs.existsSync(path.join(ROOT, 'web/_headers'))).toBe(false);
   });
