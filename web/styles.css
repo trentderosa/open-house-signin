@@ -1,0 +1,289 @@
+/*
+ * Guest sign-in form. Mobile first, system fonts only (nothing loaded from
+ * third parties). REMAX 2025 palette.
+ */
+:root {
+  --blue: #0C2749;       /* Bridge Blue */
+  --red: #AA1120;        /* Bridge Red */
+  --cream: #f7f5ee;      /* Cream */
+  --ink: #232323;        /* Dark Charcoal Gray */
+  --sky: #A3D4F2;        /* Sky Blue (accent, on blue only) */
+  --white: #ffffff;
+  --muted: #4f5666;      /* 6.7:1 on cream */
+  --edge: #5b6577;       /* control borders, 5.5:1 on white */
+  --rule: #d9d5c7;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --tap: 3rem;
+}
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--cream);
+  color: var(--ink);
+  font: 1rem/1.5 var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+[hidden] { display: none !important; }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* ---------- Masthead ---------- */
+.masthead {
+  background: var(--blue);
+  color: var(--white);
+  border-bottom: 5px solid var(--red);
+  padding: max(1.25rem, env(safe-area-inset-top)) 1.25rem 1.5rem;
+}
+.masthead-inner { max-width: 34rem; margin: 0 auto; }
+
+.brandline {
+  display: flex; align-items: center; min-height: 1.75rem;
+  margin-bottom: 1.75rem;
+}
+/* Most office logos are dark artwork, so seat them on a white plate. */
+.brand-logo {
+  display: block; box-sizing: content-box;
+  /* logo.svg has built-in whitespace around the wordmark (288x144 canvas). */
+  height: 3.25rem; width: auto; max-width: 10rem;
+  padding: 0 .25rem; background: var(--white); border-radius: 3px;
+}
+.brand-text {
+  font-size: .75rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--white);
+}
+
+.eyebrow {
+  display: flex; align-items: center; gap: .6rem;
+  margin: 0 0 .5rem;
+  font-size: .8125rem; letter-spacing: .06em; color: var(--sky);
+}
+.eyebrow::before {
+  content: ""; flex: none; width: 1.5rem; height: 2px; background: var(--red);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .15);
+}
+
+.address {
+  margin: 0;
+  font: 600 clamp(1.75rem, 8vw, 2.5rem)/1.08 var(--serif);
+  letter-spacing: -.01em;
+  overflow-wrap: anywhere;
+}
+
+.facts {
+  margin: .75rem 0 0;
+  font-size: .9375rem; font-variant-numeric: tabular-nums;
+  color: var(--sky);
+}
+.facts .sep { padding: 0 .4em; opacity: .7; }
+
+/* ---------- Page ---------- */
+.page {
+  max-width: 34rem; margin: 0 auto;
+  padding: 1.5rem 1.25rem max(3rem, env(safe-area-inset-bottom));
+}
+
+.loading { display: flex; align-items: center; gap: .75rem; color: var(--muted); margin: 1rem 0; }
+
+.spinner {
+  width: 1.1rem; height: 1.1rem; flex: none;
+  border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- Groups ---------- */
+fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
+
+.group { margin: 0 0 2rem; }
+
+.group-title {
+  display: flex; align-items: baseline; gap: .75rem;
+  width: 100%;
+  margin: 0 0 1.25rem; padding: 0 0 .6rem;
+  border-bottom: 1px solid var(--rule);
+  font-size: .8125rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--blue);
+}
+.num { color: var(--red); font-variant-numeric: tabular-nums; letter-spacing: .04em; }
+.optional {
+  margin-left: auto; font-weight: 500; letter-spacing: .04em; text-transform: none;
+  color: var(--muted);
+}
+
+/* ---------- Text fields ---------- */
+.field { margin: 0 0 1.25rem; }
+
+label,
+.choice legend {
+  display: block;
+  margin: 0 0 .4rem;
+  font-weight: 600; font-size: 1rem;
+  color: var(--ink);
+}
+.req { color: var(--red); }
+
+input[type="text"],
+input[type="tel"],
+input[type="email"],
+textarea {
+  display: block; width: 100%;
+  min-height: var(--tap);
+  padding: .75rem .875rem;
+  font: inherit; font-size: 1.0625rem; /* 17px: no iOS zoom */
+  color: var(--ink);
+  background: var(--white);
+  border: 1.5px solid var(--edge);
+  border-radius: 4px;
+  appearance: none;
+}
+textarea { min-height: 6rem; resize: vertical; line-height: 1.45; }
+
+input:focus-visible,
+textarea:focus-visible,
+button:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+
+[aria-invalid="true"] { border-color: var(--red); border-width: 2px; }
+
+.field-error {
+  margin: .35rem 0 0;
+  font-size: .9375rem; font-weight: 600;
+  color: var(--red);
+}
+.field-error:empty { display: none; }
+
+/* ---------- Segmented choices ---------- */
+.choice { margin: 0 0 1.5rem; }
+
+.options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 8.5rem), 1fr));
+  gap: .5rem;
+}
+.options.compact { grid-template-columns: repeat(auto-fill, minmax(min(100%, 6rem), 1fr)); }
+
+.option { position: relative; }
+.option input {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  margin: 0; opacity: 0; cursor: pointer;
+}
+.option label {
+  display: flex; align-items: center; justify-content: center;
+  min-height: var(--tap);
+  margin: 0; padding: .5rem .625rem;
+  text-align: center; font-weight: 500; line-height: 1.2;
+  background: var(--white);
+  border: 1.5px solid var(--edge);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color .12s ease, color .12s ease, border-color .12s ease;
+}
+.option input:checked + label {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: var(--white);
+  font-weight: 600;
+}
+.option input:focus-visible + label {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+@media (hover: hover) {
+  .option input:not(:checked):hover + label { border-color: var(--blue); }
+}
+
+/* ---------- Honeypot ---------- */
+.hp {
+  position: absolute !important; left: -10000px; top: auto;
+  width: 1px; height: 1px; overflow: hidden;
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: .6rem;
+  min-height: var(--tap);
+  padding: 0 1.25rem;
+  font: 600 1.0625rem/1 var(--sans);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.btn-primary {
+  width: 100%;
+  min-height: 3.5rem;
+  background: var(--red);
+  color: var(--white);
+  border: 0;
+  letter-spacing: .02em;
+}
+.btn-primary:hover { background: #8f0e1b; }
+.btn-primary[aria-busy="true"] { cursor: progress; opacity: .85; }
+.btn-secondary {
+  background: transparent;
+  color: var(--blue);
+  border: 2px solid var(--blue);
+}
+.btn-secondary:hover { background: var(--white); }
+
+.form-status {
+  margin: 0 0 1.25rem;
+  padding: .875rem 1rem;
+  border-left: 4px solid var(--red);
+  background: var(--white);
+  font-weight: 600;
+  color: var(--red);
+}
+.form-status:empty { display: none; }
+
+.privacy { margin: .875rem 0 0; font-size: .875rem; color: var(--muted); text-align: center; }
+
+/* ---------- Message + thanks ---------- */
+.message h2,
+.thanks h2 {
+  margin: .5rem 0 .75rem;
+  font: 600 1.625rem/1.15 var(--serif);
+  color: var(--blue);
+}
+.message h2:focus,
+.thanks h2:focus { outline: none; }
+.message p,
+.thanks p { margin: 0 0 1.5rem; font-size: 1.0625rem; }
+
+.thanks { padding-top: 1rem; }
+.thanks-mark {
+  width: 3rem; height: 3rem; margin: 0 0 1rem;
+  border: 3px solid var(--blue);
+  border-radius: 50%;
+  position: relative;
+}
+.thanks-mark::after {
+  content: "";
+  position: absolute; left: .95rem; top: .55rem;
+  width: .6rem; height: 1.2rem;
+  border: solid var(--red); border-width: 0 3px 3px 0;
+  transform: rotate(45deg);
+}
+
+.noscript { max-width: 34rem; margin: 1.5rem auto; padding: 0 1.25rem; font-weight: 600; }
+
+@media (min-width: 40rem) {
+  .masthead { padding-top: 2rem; padding-bottom: 2.25rem; }
+  .page { padding-top: 2.25rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

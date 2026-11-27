@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DEV: QR print preview</title>
+  <!--
+    Dev-only harness for the printable QR page. Not deployed (lives outside
+    web/ and apps-script/). Uses the exact same rendering code and print CSS
+    as the admin page, and the real artwork in ../web/assets/. Run `npm ci`
+    first, then open this file in a browser, or point Playwright at it.
+
+    Query options:
+      ?url=<text to encode>     default: a sample guest link
+      ?logo=0 | <path/https>    center image (default ../web/assets/balloon.svg)
+      ?brand=0 | <path/https>   wordmark below (default ../web/assets/logo.svg)
+
+    When rendering is done:
+      <body data-ready="true" data-center-logo="true|false" data-brand-logo="true|false">
+  -->
+  <link rel="stylesheet" href="../shared/print-sheet.css">
+  <style>
+    .dev-bar { font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; padding: 10px 16px; background: #fff; border-bottom: 1px solid #ccc; }
+    .dev-bar code { word-break: break-all; }
+  </style>
+</head>
+<body class="printing">
+  <div class="dev-bar">DEV PREVIEW. Encoded text: <code id="encoded"></code></div>
+  <div class="print-sheet" id="print-sheet"></div>
+  <script src="../node_modules/qrcode-generator/qrcode.js"></script>
+  <script src="../shared/qr-render.js"></script>
+  <script src="print-preview.js"></script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <base target="_top">
+    <meta charset="utf-8">
+    <?!= include('Styles'); ?>
+    <?!= include('PrintStyles'); ?>
+  </head>
+  <body>
+    <div class="admin-ui" id="admin-ui">
+      <header class="top">
+        <p class="eyebrow">Open house sign-in</p>
+        <h1>Admin</h1>
+      </header>
+
+      <div id="settings-alert" class="alert" role="alert" hidden></div>
+      <div id="load-error" class="alert" role="alert" hidden></div>
+
+      <main>
+        <section class="panel" aria-labelledby="new-heading">
+          <h2 id="new-heading"><span class="num">01</span> New open house</h2>
+          <form id="house-form" novalidate>
+            <div class="field">
+              <label for="address">Address <span class="req" aria-hidden="true">*</span><span class="sr-only">(required)</span></label>
+              <input id="address" name="address" type="text" required maxlength="200" autocomplete="off" placeholder="12 Oak St, Springfield">
+            </div>
+            <div class="row-3">
+              <div class="field">
+                <label for="price">Price</label>
+                <input id="price" name="price" type="text" maxlength="50" inputmode="decimal" placeholder="450000">
+              </div>
+              <div class="field">
+                <label for="beds">Beds</label>
+                <input id="beds" name="beds" type="text" maxlength="20" inputmode="decimal">
+              </div>
+              <div class="field">
+                <label for="baths">Baths</label>
+                <input id="baths" name="baths" type="text" maxlength="20" inputmode="decimal">
+              </div>
+            </div>
+            <div class="field">
+              <label for="sqft">Square feet</label>
+              <input id="sqft" name="sqft" type="text" maxlength="20" inputmode="numeric">
+            </div>
+            <div class="field">
+              <label for="description">Short description</label>
+              <textarea id="description" name="description" rows="3" maxlength="1000"></textarea>
+            </div>
+            <div class="field">
+              <label for="listing_url">Listing link <span class="hint">(optional)</span></label>
+              <input id="listing_url" name="listing_url" type="url" maxlength="500" inputmode="url" placeholder="https://">
+            </div>
+            <p id="form-error" class="form-error" role="alert" aria-live="assertive"></p>
+            <button type="submit" id="save-btn" class="btn btn-primary">Save and make QR code</button>
+          </form>
+        </section>
+
+        <section class="panel" id="result" aria-labelledby="result-heading" hidden>
+          <h2 id="result-heading"><span class="num">02</span> QR code ready</h2>
+          <p class="result-address" id="result-address"></p>
+          <div class="qr-preview" id="result-qr"></div>
+          <div class="actions">
+            <button type="button" class="btn btn-primary" id="result-print">Print QR</button>
+            <button type="button" class="btn btn-quiet" id="result-copy">Copy guest link</button>
+          </div>
+          <p class="small">Guest link: <a id="result-link" href="#" target="_blank" rel="noopener noreferrer"></a></p>
+          <p class="small" id="copy-status" role="status" aria-live="polite"></p>
+        </section>
+
+        <section class="panel" aria-labelledby="past-heading">
+          <h2 id="past-heading"><span class="num">03</span> Past open houses</h2>
+          <p id="past-empty" class="small" hidden>No open houses yet. Add one above.</p>
+          <p id="past-loading" class="small">Loading&hellip;</p>
+          <ol id="past-list" class="past-list"></ol>
+        </section>
+      </main>
+    </div>
+
+    <!-- Print preview: only this is visible on paper. -->
+    <div class="print-toolbar" id="print-toolbar" hidden>
+      <button type="button" class="btn btn-primary" id="print-now">Print</button>
+      <button type="button" class="btn btn-quiet" id="print-back">Back</button>
+      <span class="small">Letter paper, portrait. Turn off &ldquo;Headers and footers&rdquo; in the print options.</span>
+    </div>
+    <div class="print-sheet" id="print-sheet" aria-hidden="true"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.5.2/qrcode.min.js"
+            integrity="sha512-c3HC2N32Up+KwxhFN2dZkoDWSdxWqwzDJCnroUffjS/HBQHf5Ou1uFpqIT0rOIJ5fW8TxHmUpCDndH2A6xNhpQ=="
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <?!= include('QrRender'); ?>
+    <?!= include('Client'); ?>
+  </body>
+</html>

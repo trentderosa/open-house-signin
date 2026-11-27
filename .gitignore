@@ -3,6 +3,5 @@ node_modules/
 .clasp.json
 .env
 .env.*
-.wrangler/
 .DS_Store
 coverage/

@@ -1,0 +1,36 @@
+{
+  "name": "open-house-signin",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Free open house sign-in system: Google Apps Script + Google Sheets + a static guest form on GitHub Pages.",
+  "license": "UNLICENSED",
+  "scripts": {
+    "test": "jest",
+    "lint": "eslint .",
+    "check:secrets": "node scripts/check-secrets.js",
+    "check:sync": "node scripts/sync-shared.js --check",
+    "check": "npm run check:secrets && npm run check:sync && npm run lint && npm test",
+    "sync": "node scripts/sync-shared.js",
+    "push:admin": "cd apps-script/admin && clasp push --force",
+    "push:endpoint": "cd apps-script/endpoint && clasp push --force"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@google/clasp": "3.4.1",
+    "eslint": "10.15.0",
+    "globals": "17.14.0",
+    "jest": "30.5.2",
+    "jsqr": "1.4.0",
+    "pngjs": "7.0.0",
+    "qrcode-generator": "1.5.2"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "roots": [
+      "<rootDir>/test"
+    ]
+  }
+}
